@@ -25,11 +25,16 @@ contract CANAANS is
     CountersUpgradeable.Counter private _tokenIdCounter;
 
     IMaintainer public Maintainer;
-    // MINT_TYPEHASH = keccak256("Unlock(address to,bytes32 seed)");
+    // MINT_TYPEHASH = keccak256("mintRabbi(address to,bytes32 seed)");
     bytes32 public MINT_TYPEHASH;
-    mapping(uint256 => uint256) public Faith;
-    mapping(uint256 => uint256) public Mana;
-    mapping(uint256 => uint256) public Power;
+
+    struct attribute {
+        uint Faith;
+        uint Mana;
+        uint Power;
+    }
+    mapping(uint256 => attribute) public Attributes;
+
     // random
     uint randomCounter;
     mapping(bytes32 => bool) public seedStatus;
@@ -46,7 +51,7 @@ contract CANAANS is
 
     function initialize(IMaintainer _IMaintainer) public initializer {
         __ERC721_init("CANAANS", "Rabbi");
-
+        MINT_TYPEHASH = 0xba6b767d8b6be3a478e73aa1762a6b810c6a5a7801a90d69f18429edb9b19414;
         Maintainer = _IMaintainer;
         __ERC721Enumerable_init();
         __ReentrancyGuard_init();
@@ -133,18 +138,16 @@ contract CANAANS is
         uint256 randomPower = ((random(seed)) % 50) + 60;
 
         uint256 tokenId = _tokenIdCounter.current();
-
-        Faith[tokenId] = randomFaith;
-        Mana[tokenId] = randomMana;
-        Power[tokenId] = randomPower;
-
+        attribute memory _attribute;
+        _attribute.Faith = randomFaith;
+        _attribute.Mana = randomMana;
+        _attribute.Power = randomPower;
+        Attributes[tokenId] = _attribute;
         safeMint(to);
     }
 
     function burnRabbi(uint tokenId) public onlyOwner {
-        delete Faith[tokenId];
-        delete Mana[tokenId];
-        delete Power[tokenId];
+        delete Attributes[tokenId];
         _burn(tokenId);
     }
 
@@ -153,9 +156,11 @@ contract CANAANS is
         uint[] memory attributes
     ) public onlyOwner {
         require(attributes.length == 3);
-        Faith[tokenId] = attributes[0];
-        Mana[tokenId] = attributes[1];
-        Power[tokenId] = attributes[2];
+        attribute memory _attribute;
+        _attribute.Faith = attributes[0];
+        _attribute.Mana = attributes[1];
+        _attribute.Power = attributes[2];
+        Attributes[tokenId] = _attribute;
     }
 
     function getMintMsgHash(
