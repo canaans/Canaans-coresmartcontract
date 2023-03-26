@@ -25,7 +25,7 @@ contract CANAANS is
     CountersUpgradeable.Counter private _tokenIdCounter;
 
     IMaintainer public Maintainer;
-    // MINT_TYPEHASH = keccak256("mintRabbi(address to,bytes32 seed)");
+    // MINT_TYPEHASH = keccak256("mintRabbi(address to,bytes32 seed,uint256 expiredTime)");
     bytes32 public MINT_TYPEHASH;
 
     struct attribute {
@@ -33,7 +33,11 @@ contract CANAANS is
         uint Mana;
         uint Power;
     }
+
     mapping(uint256 => attribute) public Attributes;
+    event MINT(address to, uint tokenId, bytes32 seed, attribute _attribute);
+    event BURN(uint tokenId, attribute _attribute);
+    event CHANGE(uint tokenId, attribute _attribute);
 
     // random
     uint randomCounter;
@@ -51,7 +55,7 @@ contract CANAANS is
 
     function initialize(IMaintainer _IMaintainer) public initializer {
         __ERC721_init("CANAANS", "Rabbi");
-        MINT_TYPEHASH = 0xba6b767d8b6be3a478e73aa1762a6b810c6a5a7801a90d69f18429edb9b19414;
+        MINT_TYPEHASH = 0x91c79d7fac2e7601a58d5fd2f45cabfb32e1b858e857a03f5f686a6713abb616;
         Maintainer = _IMaintainer;
         __ERC721Enumerable_init();
         __ReentrancyGuard_init();
@@ -125,12 +129,14 @@ contract CANAANS is
     function mintRabbi(
         address to,
         bytes32 seed,
+        uint256 expiredTime,
         bytes calldata signatures
     ) external nonReentrant whenNotPaused {
         // 1. calc msgHash
-        bytes32 msgHash = getMintMsgHash(to, seed);
+        bytes32 msgHash = getMintMsgHash(to, seed, expiredTime);
         Maintainer.validatorsApprove(msgHash, signatures);
         require(!seedStatus[seed], "Error: Seed has been used.");
+        require(expiredTime > block.timestamp, "Error: Expired.");
         setSeedStatus(seed, true);
 
         uint256 randomFaith = ((random(seed)) % 50) + 60;
@@ -144,9 +150,12 @@ contract CANAANS is
         _attribute.Power = randomPower;
         Attributes[tokenId] = _attribute;
         safeMint(to);
+
+        emit MINT(to, tokenId, seed, _attribute);
     }
 
     function burnRabbi(uint tokenId) public onlyOwner {
+        emit BURN(tokenId, Attributes[tokenId]);
         delete Attributes[tokenId];
         _burn(tokenId);
     }
@@ -161,17 +170,19 @@ contract CANAANS is
         _attribute.Mana = attributes[1];
         _attribute.Power = attributes[2];
         Attributes[tokenId] = _attribute;
+        emit CHANGE(tokenId, Attributes[tokenId]);
     }
 
     function getMintMsgHash(
         address to,
-        bytes32 seed
+        bytes32 seed,
+        uint256 expiredTime
     ) public view returns (bytes32 msgHash) {
         msgHash = keccak256(
             abi.encodePacked(
                 "\x19\x01", // solium-disable-line
                 Maintainer.DOMAIN_SEPARATOR(),
-                keccak256(abi.encode(MINT_TYPEHASH, to, seed))
+                keccak256(abi.encode(MINT_TYPEHASH, to, seed, expiredTime))
             )
         );
     }

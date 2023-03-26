@@ -77,7 +77,7 @@ describe("Rabbi", () => {
       expect(await maintainer.NAME_712()).to.eq(name);
 
       mintTypeHash = keccak256(
-        toUtf8Bytes("mintRabbi(address to,bytes32 seed)")
+        toUtf8Bytes("mintRabbi(address to,bytes32 seed,uint256 expiredTime)")
       );
       expect(await nft.MINT_TYPEHASH()).to.eq(mintTypeHash);
 
@@ -100,12 +100,13 @@ describe("Rabbi", () => {
       expect(await maintainer.DOMAIN_SEPARATOR()).to.eq(DOMAIN_SEPARATOR);
     });
     it("should work well for Mint", async function () {
-
+      const expiredTime = Math.floor(Date.now() / 1000) + 86400;
       const msgHash = getMintMsgHash(
         DOMAIN_SEPARATOR,
         mintTypeHash,
         signer.address,
-        mintTypeHash //seed
+        mintTypeHash, //seed
+        expiredTime
       );
 
       // 2. generate signatures
@@ -114,8 +115,8 @@ describe("Rabbi", () => {
         wallets.slice(0, multisigThreshold)
       );
 
-      const result = await nft.mintRabbi(signer.address, mintTypeHash, signatures);
-      const attr = await nft.Attributes(0); //TokenId
+      const result = await nft.mintRabbi(signer.address, mintTypeHash, expiredTime, signatures);
+      const attr = await nft.Attributes(0); // TokenId
       expect(attr.Faith).to.greaterThan(60).lessThan(110);
       expect(attr.Mana).to.greaterThan(60).lessThan(110);
       expect(attr.Power).to.greaterThan(60).lessThan(110);

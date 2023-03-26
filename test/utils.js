@@ -48,7 +48,7 @@ const generateSignatures = (msgHash, wallets) => {
   return signatures;
 };
 
-const getMintMsgHash = (DOMAIN_SEPARATOR, typeHash, to, seed) => {
+const getMintMsgHash = (DOMAIN_SEPARATOR, typeHash, to, seed, expiredTime) => {
   return keccak256(
     solidityPack(
       ["bytes1", "bytes1", "bytes32", "bytes32"],
@@ -61,9 +61,10 @@ const getMintMsgHash = (DOMAIN_SEPARATOR, typeHash, to, seed) => {
             [
               "bytes32",
               "address",
-              "bytes32"
+              "bytes32",
+              "uint256"
             ],
-            [typeHash, to, seed]
+            [typeHash, to, seed, expiredTime]
           )
         ),
       ]
